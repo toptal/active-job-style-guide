@@ -399,3 +399,10 @@ Compare limiters by the name, not by the object.
 ----
  Sidekiq::Limiter.bucket('custom-limiter', 1, :day) == Sidekiq::Limiter.bucket('custom-limiter', 1, :day) # => false
 ----
+
+[#rolling-restarts]
+=== Rolling Restarts
+
+Use https://github.com/mperham/sidekiq/wiki/Ent-Rolling-Restarts[Enterprise Rolling Restarts].
+With Rolling Restarts, deployments do not suffer from downtime.
+Also, it prevents non-atomic and non-idempotent jobs from being being interrupted and executed more than once on deployments.
