@@ -122,3 +122,20 @@ class SomeJob < ApplicationJob
   end
 end
 ----
+
+[#idempotency]
+=== Idempotency
+
+Ideally, jobs should be idempotent, meaning there should be no bad side effects of them running more than once.
+Sidekiq only guarantees that the jobs will run https://github.com/mperham/sidekiq/wiki/Best-Practices#2-make-your-job-idempotent-and-transactional[at least once], but not necessarily exactly once.
+
+Even jobs that do not fail due to errors https://github.com/mperham/sidekiq/wiki/FAQ#what-happens-to-long-running-jobs-when-sidekiq-restarts[might be interrupted] during https://github.com/mperham/sidekiq/wiki/Deployment#overview[non-rolling-release deployments].
+
+[source,ruby]
+----
+class UserNotificationJob < ApplicationJob
+  def perform(user)
+    send_email_to(user) unless already_notified?(user)
+  end
+end
+----
