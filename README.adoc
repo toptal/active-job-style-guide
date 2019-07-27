@@ -126,3 +126,52 @@ class BackfillMissingDataJob < ApplicationJob
   end
 end
 ----
+
+[#api-rate-limited-operations]
+=== API Rate-limited Operations
+
+Most third-party APIs have usage limits and will fail if there are too many calls in a period of time.
+Use rate limiting in jobs that make such external calls.
+
+Never rely on the amount of the jobs to be executed.
+Even if you schedule jobs to be executed at a specific moment of time, they might be actually executed all at once, due to e.g. traffic jam in job processing.
+Use https://github.com/mperham/sidekiq/wiki/Ent-Rate-Limiting[Enterprise Rate Limiting].
+Use the strategy (Concurrent, Bucket, Window) that is most suitable to the specific API rate limiting.
+
+[source,ruby]
+----
+# bad
+class UpdateExternalDataJob < ApplicationJob
+  retry_on ThirdParty::Api::Errors::TooManyRequestsError, wait: 1.minute, attempts: 3
+
+  def perform(user)
+    new_attribute = ThirdParty::Api.get_attribute(user.external_id)
+    user.update!(attribute: new_attribute)
+  end
+end
+
+User.where.not(external_id: nil)
+  .find_in_batches.with_index do |group_number, users|
+  users.each do |user|
+    UpdateExternalDataJob
+      .set(wait: group_number.minutes)
+      .perform_later(users)
+    end
+end
+
+# good
+class UpdateExternalDataJob < ApplicationJob
+  LIMITER = Sidekiq::Limiter.window('third-party-attribute-update', 20, :minute, wait_timeout: 0)
+
+  def perform(user)
+    LIMITER.within_limit do
+      new_attribute = ThirdParty::Api.get_attribute(user.external_id)
+      user.update!(attribute: new_attribute)
+    end
+  end
+end
+
+User.where.not(external_id: nil).find_each do |user|
+  UpdateExternalDataJob.perform_later(user)
+end
+----
