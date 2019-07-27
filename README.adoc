@@ -1,0 +1,5 @@
+= Active Job Style Guide
+
+This style guide is a list of best practices working with Ruby background jobs using Active Job with Sidekiq backend.
+
+Despite the common belief, they work quite well together if you follow the guidelines.
