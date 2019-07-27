@@ -85,93 +85,40 @@ module TransitionHelper
 end
 ----
 
-[#long-running-one-off-jobs]
-=== Long-running One-off Jobs
+[#queue-assignments]
+=== Queue Assignments
 
-Avoid using self-scheduling jobs.
-Prefer using https://github.com/mperham/sidekiq/wiki/Batches[Sidekiq Batches] to split the workload.
+Explicitly specify a queue to be used in job classes.
+Make sure the queue is on the https://github.com/mperham/sidekiq/wiki/Advanced-Options#queues[list of processed queues].
+
+Putting all jobs into one basket comes with a risk of more urgent jobs being executed with a significant delay.
+Do not put slow and fast jobs together in one queue.
+Do not put urgent and non-urgent jobs together in one queue.
 
 [source,ruby]
 ----
-# bad
-class BackfillMissingDataJob < ApplicationJob
-  BATCH_SIZE = 20
-  def perform(offset = 0)
-    models = Model.where(attribute: nil)
-      .order(:id).offset(offset).limit(BATCH_SIZE)
-    return if models.empty?
+# bad - no queue specified
+class SomeJob < ApplicationJob
+  def perform
+    # ...
+  end
+end
 
-    models.each do |model|
-      model.update!(attribute: for(model))
-    end
-    self.class.perform_later(offset + BATCH_SIZE)
+# bad - the wrong queue specified
+class SomeJob < ApplicationJob
+  queue_as :hgh_prioriti # nonexistent queue specified
+
+  def perform
+    # ...
   end
 end
 
 # good
-class BackfillMissingDataJob < ApplicationJob
-  def self.run_batch
-    Sidekiq::Batch.new.jobs do
-      Model.where(attribute: nil)
-        .find_in_batches(20) do |models|
-        BackfillMissingDataJob.perform_later(models)
-      end
-    end
+class SomeJob < ApplicationJob
+  queue_as :high_priority
+
+  def perform
+    # ...
   end
-
-  def perform(models)
-    models.each do |model|
-      model.update!(attribute: for(model))
-    end
-  end
-end
-----
-
-[#api-rate-limited-operations]
-=== API Rate-limited Operations
-
-Most third-party APIs have usage limits and will fail if there are too many calls in a period of time.
-Use rate limiting in jobs that make such external calls.
-
-Never rely on the amount of the jobs to be executed.
-Even if you schedule jobs to be executed at a specific moment of time, they might be actually executed all at once, due to e.g. traffic jam in job processing.
-Use https://github.com/mperham/sidekiq/wiki/Ent-Rate-Limiting[Enterprise Rate Limiting].
-Use the strategy (Concurrent, Bucket, Window) that is most suitable to the specific API rate limiting.
-
-[source,ruby]
-----
-# bad
-class UpdateExternalDataJob < ApplicationJob
-  retry_on ThirdParty::Api::Errors::TooManyRequestsError, wait: 1.minute, attempts: 3
-
-  def perform(user)
-    new_attribute = ThirdParty::Api.get_attribute(user.external_id)
-    user.update!(attribute: new_attribute)
-  end
-end
-
-User.where.not(external_id: nil)
-  .find_in_batches.with_index do |group_number, users|
-  users.each do |user|
-    UpdateExternalDataJob
-      .set(wait: group_number.minutes)
-      .perform_later(users)
-    end
-end
-
-# good
-class UpdateExternalDataJob < ApplicationJob
-  LIMITER = Sidekiq::Limiter.window('third-party-attribute-update', 20, :minute, wait_timeout: 0)
-
-  def perform(user)
-    LIMITER.within_limit do
-      new_attribute = ThirdParty::Api.get_attribute(user.external_id)
-      user.update!(attribute: new_attribute)
-    end
-  end
-end
-
-User.where.not(external_id: nil).find_each do |user|
-  UpdateExternalDataJob.perform_later(user)
 end
 ----
