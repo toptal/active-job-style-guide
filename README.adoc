@@ -84,3 +84,45 @@ module TransitionHelper
   end
 end
 ----
+
+[#long-running-one-off-jobs]
+=== Long-running One-off Jobs
+
+Avoid using self-scheduling jobs.
+Prefer using https://github.com/mperham/sidekiq/wiki/Batches[Sidekiq Batches] to split the workload.
+
+[source,ruby]
+----
+# bad
+class BackfillMissingDataJob < ApplicationJob
+  BATCH_SIZE = 20
+  def perform(offset = 0)
+    models = Model.where(attribute: nil)
+      .order(:id).offset(offset).limit(BATCH_SIZE)
+    return if models.empty?
+
+    models.each do |model|
+      model.update!(attribute: for(model))
+    end
+    self.class.perform_later(offset + BATCH_SIZE)
+  end
+end
+
+# good
+class BackfillMissingDataJob < ApplicationJob
+  def self.run_batch
+    Sidekiq::Batch.new.jobs do
+      Model.where(attribute: nil)
+        .find_in_batches(20) do |models|
+        BackfillMissingDataJob.perform_later(models)
+      end
+    end
+  end
+
+  def perform(models)
+    models.each do |model|
+      model.update!(attribute: for(model))
+    end
+  end
+end
+----
