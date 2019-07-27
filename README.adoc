@@ -139,3 +139,35 @@ class UserNotificationJob < ApplicationJob
   end
 end
 ----
+
+[#threads]
+=== Threads
+
+Do not use threads in your jobs.
+Spawn jobs instead.
+Spinning up a thread in a job leads to opening a new database connection, and the connections are easily exhausted, up to the point when the webserver is down.
+
+[source,ruby]
+----
+# bad - consumes all available connections
+class SomeJob < ApplicationJob
+  def perform
+    User.find_each |user|
+      Thread.new do
+        ExternalService.update(user)
+      end
+    end
+  end
+end
+
+# good
+class SomeJob < ApplicationJob
+  def perform(user)
+    ExternalService.update(user)
+  end
+end
+
+User.find_each |user|
+  SomeJob.perform_later(user)
+end
+----
