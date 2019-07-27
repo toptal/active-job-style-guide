@@ -3,3 +3,84 @@
 This style guide is a list of best practices working with Ruby background jobs using Active Job with Sidekiq backend.
 
 Despite the common belief, they work quite well together if you follow the guidelines.
+
+[#active-record-models-as-arguments]
+=== Active Record Models as Arguments
+
+Pass Active Record models as arguments; do not pass by id.
+Active Job automatically serializes and deserializes Active Record models using https://edgeguides.rubyonrails.org/active_job_basics.html#globalid[GlobalID], and manual deserialization of the models is not necessary.
+
+GlobalID handles model class mismatches properly.
+
+Deserialization errors are reported to error tracking.
+
+[source,ruby]
+----
+# bad - passing by id
+# Deserialization error is reported, the job *is* scheduled for retry.
+class SomeJob < ApplicationJob
+  def perform(model_id)
+    model = Model.find(model_id)
+    do_something_with(model)
+  end
+end
+
+# bad - model mismatch
+class SomeJob < ApplicationJob
+  def perform(model_id)
+    Model.find(model_id)
+    # ...
+  end
+end
+
+# Will try to fetch a Model using another model class, e.g. User's id.
+SomeJob.perform_later(user.id)
+
+# acceptable - passing by id
+# Deserialization error is reported, the job is *not* scheduled for retry.
+class SomeJob < ApplicationJob
+  def perform(model_id)
+    model = Model.find(model_id)
+    do_something_with(model)
+  rescue ActiveRecord::RecordNotFound
+    Rollbar.warning('Not found')
+  end
+end
+
+# good - passing with GlobalID
+# Deserialization error is reported, the job is *not* scheduled for retry.
+class SomeJob < ApplicationJob
+  def perform(model)
+    do_something_with(model)
+  end
+end
+----
+
+WARNING: Do not replace one style with another, use a transitional period to let all jobs scheduled with ids to be processed.
+Use a helper to temporarily support both numeric and GlobalID arguments.
+
+[source,ruby]
+----
+class SomeJob < ApplicationJob
+  include TransitionHelper
+
+  def perform(model)
+    # TODO: remove this when all jobs with numeric id arguments are processed
+    model = fetch(model, Model)
+    do_something_with(model)
+  end
+end
+
+module TransitionHelper
+  def fetch(id_or_object, model_class)
+    case id_or_object
+    when Numeric
+      model_class.find(id_or_object)
+    when model_class
+      id_or_object
+    else
+      fail "Object type mismatch #{model_class}, #{id_or_object}"
+    end
+  end
+end
+----
