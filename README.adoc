@@ -320,3 +320,35 @@ end
 
 SendUserAgreementJob.perform_later(user) if satisfy_preconditions?
 ----
+
+[#redis-memory-constraints]
+=== Redis Memory Constraints
+
+Redis's database size is limited by server memory.
+Some prefer to explicitly set `maxmemory`, and in combination with a `noeviction` policy, this may result in errors on job scheduling.
+
+==== Dead Jobs
+
+Do not keep jobs in Dead Jobs.
+With extended backtrace enabled for Dead Jobs, a single dead job can occupy as much as 20KB in the database.
+
+Re-run the jobs once the root cause is fixed, or delete them.
+
+==== Excessive Arguments
+
+Do not pass an excessive number of arguments to a job.
+
+[source,ruby]
+----
+# bad
+SomeJob.perform_later(user_name, user_status, user_url, user_info: huge_json)
+
+# good
+SomeJob.perform_later(user, user_url)
+----
+
+==== Hordes
+
+Do not schedule hundreds of thousands jobs at once.
+A single job with no parameters takes 0.5KB.
+Measure the exact footprint for each job with its arguments.
