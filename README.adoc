@@ -361,3 +361,41 @@ SomeJob.perform_later(user, user_url)
 Do not schedule hundreds of thousands jobs at once.
 A single job with no parameters takes 0.5KB.
 Measure the exact footprint for each job with its arguments.
+
+[#default-limiter-backoff]
+=== Default Limiter Backoff
+
+Do not rely on Sidekiq's limiter backoff default.
+It will reschedule the job in five minutes in the future.
+
+[source,ruby]
+----
+DEFAULT_BACKOFF = ->(limiter, job) do
+  (300 * job['overrated']) + rand(300) + 1
+end
+----
+
+It doesn't fit the cases when limits are released quickly or are kept for hours.
+Configure it on a limiter basis.
+
+[source,ruby]
+----
+Sidekiq::Limiter.configure do |config|
+  config.backoff = ->(limiter, job) do
+    case limiter.name
+    when 'daily-third-party-api-limit'
+      12.hours
+    else
+      (300 * job['overrated']) + rand(300) + 1 # fallback to default
+    end
+  end
+end
+----
+
+Keep in mind how limiter comparison works.
+Compare limiters by the name, not by the object.
+
+[source,ruby]
+----
+ Sidekiq::Limiter.bucket('custom-limiter', 1, :day) == Sidekiq::Limiter.bucket('custom-limiter', 1, :day) # => false
+----
