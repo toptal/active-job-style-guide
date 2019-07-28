@@ -241,3 +241,16 @@ users = User.transaction do
         end
 users.each { |user| NotifyUserJob.perform_later(user) }
 ----
+
+[#local-performance-testing]
+=== Local Performance Testing
+
+Due to Rails auto-reloading, Sidekiq jobs are executed one-by-one, with no parallelism.
+That may be confusing.
+
+Run Sidekiq in an environment that has `eager_load` set to `true`, or with the following flags to circumvent this behavior:
+
+[source,sh]
+----
+EAGER_LOAD=true ALLOW_CONCURRENCY=true bundle exec sidekiq
+----
