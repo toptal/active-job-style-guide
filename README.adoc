@@ -217,6 +217,13 @@ end
 
 Always use retries for jobs that are executed in batches, otherwise, the batch will never succeed.
 
+[#use-retries]
+=== Use Retries
+
+Use the retry mechanism.
+Do not let jobs end up in Dead Jobs.
+Let Sidekiq retry the jobs, and don't spend time re-running the jobs manually.
+
 [#mind-transactions]
 === Mind Transactions
 
