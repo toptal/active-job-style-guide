@@ -475,6 +475,28 @@ end
 ActiveJob::Base.around_perform(&SidekiqLimiter.method(:wrapper))
 ----
 
+[#ignore-overlimit]
+=== Ignore `OverLimit` Exceptions on Third-party Services
+
+`Sidekiq::Limiter::OverLimit` is an internal mechanism, and it doesn't make sense to report when it triggers.
+
+[source,ruby]
+----
+# config/initializers/rollbar.rb
+Rollbar.configure do |config|
+  config.exception_level_filters.merge!('Sidekiq::Limiter::OverLimit' => 'ignore')
+end
+----
+
+[source,yaml]
+----
+# config/newrelic.yml
+production:
+  error_collector:
+    enabled: true
+    ignore_errors: "Sidekiq::Limiter::OverLimit"
+----
+
 [#rolling-restarts]
 === Rolling Restarts
 
