@@ -140,6 +140,15 @@ class UserNotificationJob < ApplicationJob
 end
 ----
 
+[#atomicity]
+=== Atomicity
+
+During deployment, a job is given 25 seconds to complete by default.
+After that, the worker is terminated and the job is sent back to the queue.
+This might result in part of the work being executed twice.
+
+Make the jobs atomic, i.e., all or nothing.
+
 [#threads]
 === Threads
 
