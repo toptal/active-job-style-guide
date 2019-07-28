@@ -260,4 +260,56 @@ EAGER_LOAD=true ALLOW_CONCURRENCY=true bundle exec sidekiq
 
 Background job processing may be down for a prolonged period (minutes), e.g. during a failed deployment or a burst of other jobs.
 
-Consider running critical time-critical and mission-critical jobs in-process.
+Consider running time-critical and mission-critical jobs in-process.
+
+[#business-logic-in-jobs]
+=== Business Logic in Jobs
+
+Do not put business logic to jobs; extract it.
+
+[source, ruby]
+----
+# bad
+class SendUserAgreementJob < ApplicationJob
+  # Convenient method to check if preconditions are satisfied to avoid
+  # scheduling unnecessary jobs.
+  def self.perform_later_if_applies(user)
+    job = new(user)
+    return unless job.satisfy_preconditions?
+
+    job.enqueue
+  end
+
+  def perform(user)
+    @user = user
+    return unless satisfy_preconditions?
+
+    agreement = agreement_for(user: user)
+    AgreementMailer.deliver_now(agreement)
+  end
+
+  def satisfy_preconditions?
+    legal_agreement_signed? &&
+      !user.removed? &&
+      !user.referral? &&
+      !(user.active? || user.pending?) &&
+      !user.has_flag?(:on_hold)
+  end
+
+  private
+
+  attr_reader :user
+
+  # business logic
+end
+
+# good - business logic is not coupled to the job
+class SendUserAgreementJob < ApplicationJob
+  def perform(user)
+    agreement = agreement_for(user: user)
+    AgreementMailer.deliver_now(agreement)
+  end
+end
+
+SendUserAgreementJob.perform_later(user) if satisfy_preconditions?
+----
