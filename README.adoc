@@ -254,3 +254,10 @@ Run Sidekiq in an environment that has `eager_load` set to `true`, or with the f
 ----
 EAGER_LOAD=true ALLOW_CONCURRENCY=true bundle exec sidekiq
 ----
+
+[#critical-jobs]
+=== Critical Jobs
+
+Background job processing may be down for a prolonged period (minutes), e.g. during a failed deployment or a burst of other jobs.
+
+Consider running critical time-critical and mission-critical jobs in-process.
