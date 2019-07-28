@@ -400,6 +400,50 @@ Compare limiters by the name, not by the object.
  Sidekiq::Limiter.bucket('custom-limiter', 1, :day) == Sidekiq::Limiter.bucket('custom-limiter', 1, :day) # => false
 ----
 
+[#reuse-limiters]
+=== Reuse Limiters
+
+Create https://github.com/mperham/sidekiq/wiki/Ent-Rate-Limiting[limiters] once during startup and reuse them.
+Limiters are thread-safe and designed to be shared.
+
+Each limiter occupies 114 bytes in Redis, and the default TTL is 3 months.
+1 million jobs a month using non-shared limiters will be constantly consuming 300MB in Redis.
+
+[source,ruby]
+----
+# bad - limiter is re-created on each job call
+class SomeJob < ApplicationJob
+  def perform(...)
+    limiter = Sidekiq::Limiter.concurrent('erp', 50, wait_timeout: 0, lock_timeout: 30)
+    limiter.within_limit do
+      # call ERP
+    end
+  end
+end
+
+# good
+class SomeJob < ApplicationJob
+  ERP_LIMIT = Sidekiq::Limiter.concurrent('erp', 50, wait_timeout: 0, lock_timeout: 30)
+
+  def perform(...)
+    ERP_LIMIT.within_limit do
+      # call ERP
+    end
+  end
+end
+
+# acceptable - an exception is when the limiter is specific to something, and that is used as a distinction key in limiter name.
+class SomeJob < ApplicationJob
+  def perform(user)
+    # Rate limiting is per user account
+    user_throttle = Sidekiq::Limiter.bucket("stripe-#{user.id}", 30, :second, wait_timeout: 0)
+    user_throttle.within_limit do
+      # call stripe with user's account creds
+    end
+  end
+end
+----
+
 [#rolling-restarts]
 === Rolling Restarts
 
