@@ -444,6 +444,37 @@ class SomeJob < ApplicationJob
 end
 ----
 
+[#global-limiting-middleware]
+=== Global Limiting Middleware
+
+The `Sidekiq::Limiter::OverLimit` exception might be rescued by jobs to discard themselves from locally defined limiters.
+To avoid interference between global throttle limiter middleware and local job limiters, wrap `Sidekiq::Limiter::OverLimit` exception in middleware.
+
+[source,ruby]
+----
+# Middleware
+class SaturationLimiter
+  SaturationOverLimit = Class.new(StandardError)
+
+  def self.wrapper(job, block)
+    LIMITER.within_limit { block.call }
+  rescue Sidekiq::Limiter::OverLimit => e
+    limiter_name = e.limiter.name
+    # Re-raise if an over the limit exception is coming from a limiter
+    # defined on the job level.
+    raise unless limiter_name == LIMITER.name
+
+    # Use a custom exception that Sidekiq::Limiter is using to re-schedule
+    # the job to a later time, but in a way that doesn't overlap with the
+    # limiters defined on the job level.
+    raise SaturationOverLimit, limiter_name
+  end
+end
+
+# config/initializers/active_job.rb
+ActiveJob::Base.around_perform(&SidekiqLimiter.method(:wrapper))
+----
+
 [#rolling-restarts]
 === Rolling Restarts
 
