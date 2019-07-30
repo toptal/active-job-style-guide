@@ -491,6 +491,12 @@ Do not schedule hundreds of thousands jobs at once.
 A single job with no parameters takes 0.5KB.
 Measure the exact footprint for each job with its arguments.
 
+[#monitoring]
+=== Monitoring
+
+Monitor the server and store historical metrics.
+Properly configured metrics will provide answers to improve the throughput of job processing.
+
 [#commercial-features]
 == Commercial Features
 
