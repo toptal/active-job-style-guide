@@ -800,3 +800,64 @@ With Rolling Restarts, deployments do not suffer from downtime.
 Also, it prevents non-atomic and non-idempotent jobs from being interrupted and executed more than once on deployments.
 
 WARNING: For Capistrano-style deployments make sure to use https://github.com/stripe/einhorn#re-exec[`--reexec-as`] and https://github.com/stripe/einhorn#options[`--drop-env-var BUNDLE_GEMFILE`] einhorn options to avoid stalled code and dependencies.
+
+[#testing]
+== Testing
+
+[#perform]
+=== `perform`
+
+Don't use `job.perform` or `job_class.new.perform`, it bypasses the Active Job serialization/deserialization stage.
+Use `job_class.perform_now`.
+With the implicitly subject, and recommends against using `.perform` (that as you correctly mention is exclusively available on a job instance, not class):
+
+[source,ruby]
+----
+# bad - `perform` method is called directly on an implicitly defined subject
+RSpec.describe SomeJob do
+  # implicitly defined `subject` is `SomeJob.new`
+  it 'updates user status' do
+    expect { subject.perform(user) }.to change { user.status }.to(:updated) }
+  end
+end
+
+# bad - `perform` method is called directly on a job instance
+RSpec.describe SomeJob do
+  it 'updates user status' do
+    expect { SomeJob.new.perform(user) }.to change { user.status }.to(:updated) }
+  end
+end
+
+# good
+RSpec.describe SomeJob do
+  it 'updates user status' do
+    expect { SomeJob.perform_now(user) }.to change { user.status }.to(:updated) }
+  end
+end
+----
+
+[#perform_later]
+=== `perform_later`
+
+Prefer `perform_now` to `perform_later` when testing jobs.
+It doesn't involve Redis.
+
+[source,ruby]
+----
+# bad - unnecessary roundtrip to Redis
+RSpec.describe SomeJob do
+  it 'updates user status' do
+    expect do
+      SomeJob.perform_later(user)
+      perform_scheduled_jobs
+    end.to change { user.status }.to(:updated) }
+  end
+end
+
+# good
+RSpec.describe SomeJob do
+  it 'updates user status' do
+    expect { SomeJob.perform_now(user) }.to change { user.status }.to(:updated) }
+  end
+end
+----
