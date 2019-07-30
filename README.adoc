@@ -1,4 +1,14 @@
 = Active Job Style Guide
+:idprefix:
+:idseparator: -
+:sectanchors:
+:sectlinks:
+:toc: left
+:toclevels: 2
+ifndef::backend-pdf[]
+:toc-title: pass:[<h2>Table of Contents</h2>]
+endif::[]
+:source-highlighter: rouge
 
 This style guide is a list of best practices working with Ruby background jobs using Active Job with Sidekiq backend.
 
@@ -7,6 +17,32 @@ Despite the common belief, they work quite well together if you follow the guide
 Sidekiq may be used without Active Job, but the latter adds transparency and a useful serialization layer.
 
 This style guide didn't appear out of thin air - it is based on the professional experience of the editors, official documentation, and suggestions from members of the Ruby community.
+
+ifdef::env-github[]
+You can generate a PDF copy of this guide using https://asciidoctor.org/docs/asciidoctor-pdf/[AsciiDoctor PDF], and an HTML copy https://asciidoctor.org/docs/convert-documents/#converting-a-document-to-html[with] https://asciidoctor.org/#installation[AsciiDoctor] using the following commands:
+
+[source,shell]
+----
+# Generates README.pdf
+asciidoctor-pdf -a allow-uri-read README.adoc
+
+# Generates README.html
+asciidoctor
+----
+
+[TIP]
+====
+Install the `rouge` gem to get nice syntax highlighting in the generated document.
+
+[source,shell]
+----
+gem install rouge
+----
+====
+endif::[]
+
+[#general]
+== General Recommendations
 
 [#active-record-models-as-arguments]
 === Active Record Models as Arguments
