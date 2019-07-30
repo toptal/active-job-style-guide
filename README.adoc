@@ -569,4 +569,6 @@ production:
 
 Use https://github.com/mperham/sidekiq/wiki/Ent-Rolling-Restarts[Enterprise Rolling Restarts].
 With Rolling Restarts, deployments do not suffer from downtime.
-Also, it prevents non-atomic and non-idempotent jobs from being being interrupted and executed more than once on deployments.
+Also, it prevents non-atomic and non-idempotent jobs from being interrupted and executed more than once on deployments.
+
+WARNING: For Capistrano-style deployments make sure to use https://github.com/stripe/einhorn#re-exec[`--reexec-as`] and https://github.com/stripe/einhorn#options[`--drop-env-var BUNDLE_GEMFILE`] einhorn options to avoid stalled code and dependencies.
