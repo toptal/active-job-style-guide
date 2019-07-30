@@ -397,6 +397,58 @@ NOTE: This also relates to mailers used with `deliver_later`.
 OldJob = NewJob
 ----
 
+[#sleep]
+=== `sleep`
+
+Do not use `Kernel.sleep` in jobs.
+`sleep` blocks the worker thread, and it's not able to process other jobs.
+Re-schedule the job for a later time, or use limiters with a custom exception.
+
+[source,ruby]
+----
+# bad
+class SomeJob < ApplicationJob
+  def perform(user)
+    attempts_number = 3
+    ThirdParty::Api::User.renew(user.external_id)
+  rescue ThirdParty::Api::Errors::TooManyRequestsError => error
+    sleep(error.retry_after)
+    attempts_number -= 1
+    retry unless attempts_number.zero?
+    raise
+  end
+end
+
+# good - retry job in a while, a limited number of times
+class SomeJob < ApplicationJob
+  sidekiq_options retry: 3
+  sidekiq_retry_in do |count, exception|
+    case exception
+    when ThirdParty::Api::Errors::TooManyRequestsError
+      count + 1 # i.e. 1s, 2s, 3s
+    end
+  end
+
+  def perform(user)
+    ThirdParty::Api::User.renew(user.external_id)
+  end
+end
+
+# good - fine-grained control of API usage in jobs
+class SomeJob < ApplicationJob
+  def perform(user)
+    LIMITER.within_limit do
+      ThirdParty::Api::User.renew(user.external_id)
+    end
+  end
+end
+
+# config/initializers/sidekiq.rb
+Sidekiq::Limiter.configure do |config|
+  config.errors << ThirdParty::Api::Errors::TooManyRequestsError
+end
+----
+
 [#redis-memory-constraints]
 === Redis Memory Constraints
 
