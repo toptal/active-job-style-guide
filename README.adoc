@@ -383,6 +383,20 @@ def perform
 end
 ----
 
+[#job-renaming]
+=== Job Renaming
+
+Carefully rename job classes to avoid situations with jobs are scheduled, but there's no class to process it.
+
+NOTE: This also relates to mailers used with `deliver_later`.
+
+[source,ruby]
+----
+# good - keep the old class
+# TODO: Delete this alias in a few weeks when old jobs are safely gone
+OldJob = NewJob
+----
+
 [#redis-memory-constraints]
 === Redis Memory Constraints
 
