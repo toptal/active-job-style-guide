@@ -4,6 +4,10 @@ This style guide is a list of best practices working with Ruby background jobs u
 
 Despite the common belief, they work quite well together if you follow the guidelines.
 
+Sidekiq may be used without Active Job, but the latter adds transparency and a useful serialization layer.
+
+This style guide didn't appear out of thin air - it is based on the professional experience of the editors, official documentation, and suggestions from members of the Ruby community.
+
 [#active-record-models-as-arguments]
 === Active Record Models as Arguments
 
@@ -861,3 +865,42 @@ RSpec.describe SomeJob do
   end
 end
 ----
+
+== History
+
+This guide came to life as an internal https://www.toptal.com[company] list of the best practices of working with ActiveJob and Sidekiq (written by https://github.com/pirj[Phil Pirozhkov]).
+It is compiled from remarks collected from numerous code reviews conducted by its authors and outlines the best practices of working with background jobs in Ruby.
+Not only will those guidelines save an incredible amount of developer time, but it will also save from pitfalls.
+
+== Contributing
+
+The guide is a work in progress.
+Improving such guidelines is a great (and simple way) to help the Ruby community!
+
+Nothing written in this guide is set in stone.
+We desire to work together with everyone interested in gathering the best practices of working with background jobs.
+The goal is to create a resource that will be beneficial to the entire Ruby community.
+
+Feel free to open tickets or send pull requests with improvements.
+Thanks in advance for your help!
+
+=== How to Contribute
+
+It's easy, just follow the contribution guidelines below:
+
+* https://help.github.com/articles/fork-a-repo[Fork] on GitHub
+* Make your feature addition or bug fix in a feature branch.
+* Include a http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html[good description] of your changes
+* Push your feature branch to GitHub
+* Send a https://help.github.com/articles/using-pull-requests[Pull Request]
+
+== License
+
+image:https://i.creativecommons.org/l/by/3.0/88x31.png[Creative Commons License] This work is licensed under a http://creativecommons.org/licenses/by/3.0/deed.en_US[Creative Commons Attribution 3.0 Unported License]
+
+== Spread the Word
+
+A community-driven style guide is of little use to a community that doesn't know about its existence.
+Tweet about the guide and share it with your friends and colleagues.
+Every comment, suggestion, or opinion we get makes the guide just a little bit better.
+And we want to have the best possible guide, don't we?
