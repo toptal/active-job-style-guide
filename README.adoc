@@ -330,6 +330,59 @@ end
 SendUserAgreementJob.perform_later(user) if satisfy_preconditions?
 ----
 
+[#scheduling-a-job-from-a-job]
+=== Scheduling a Job from a Job
+
+Weigh the pros and cons in each case, whether to schedule jobs from jobs or to execute them in-process.
+Factors to consider:
+Is it a retriable job?
+Can inner jobs fail?
+Are they idempotent?
+Is there anything in the host job that may fail?
+
+[source,ruby]
+----
+# good - error kernel pattern
+# bad - additional jobs are spawned
+class SomeJob < ApplicationJob
+  def perform
+    SomeMailer.some_notification.deliver_later
+    OtherJob.perform_later
+  end
+end
+
+# good - no additional jobs
+# bad - if `OtherJob` fails, `SomeMailer` will be re-executed on retry as well
+class SomeJob < ApplicationJob
+  def perform
+    SomeMailer.some_notification.deliver_now
+    OtherJob.perform_now
+  end
+end
+----
+
+==== Numerous Jobs
+
+When a lot of jobs should be performed, it's acceptable to schedule them.
+
+Consider using batches for improved traceability.
+
+Also, specify the same queue for the host job and sub-jobs.
+
+[source,ruby]
+----
+# acceptable
+def perform
+  batch = Sidekiq::Batch.new
+  batch.description = 'Send weekly reminders'
+  batch.jobs do
+    User.find_each do |user|
+      WeeklyReminderJob.perform_later(user)
+    end
+  end
+end
+----
+
 [#redis-memory-constraints]
 === Redis Memory Constraints
 
