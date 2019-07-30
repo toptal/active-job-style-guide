@@ -491,6 +491,106 @@ Do not schedule hundreds of thousands jobs at once.
 A single job with no parameters takes 0.5KB.
 Measure the exact footprint for each job with its arguments.
 
+[#commercial-features]
+== Commercial Features
+
+At some scale, https://github.com/mperham/sidekiq/wiki/Build-vs-Buy[it pays out to use commercial features].
+
+[#self-scheduling-jobs]
+=== Self-scheduling Jobs
+
+Avoid using self-scheduling jobs for long-running jobs.
+Prefer using Sidekiq Batches to split the workload.
+
+[source,ruby]
+----
+# bad
+class BackfillMissingDataJob < ApplicationJob
+  SIZE = 20
+  def perform(offset = 0)
+    models = Model.where(attribute: nil)
+      .order(:id).offset(offset).limit(SIZE)
+    return if models.empty?
+
+    models.each do |model|
+      model.update!(attribute: for(model))
+    end
+    self.class.perform_later(offset + SIZE)
+  end
+end
+
+# good
+class BackfillMissingDataJob < ApplicationJob
+  def self.run_batch
+    Sidekiq::Batch.new.jobs do
+      Model.where(attribute: nil)
+        .find_in_batches(20) do |models|
+        BackfillMissingDataJob.perform_later(models)
+      end
+    end
+  end
+
+  def perform(models)
+    models.each do |model|
+      model.update!(attribute: for(model))
+    end
+  end
+end
+----
+
+[#api-rate-limited-operations]
+=== API Rate-limited Operations
+
+Most third-party APIs have usage limits and will fail if there are too many calls in a period.
+Use rate limiting in jobs that make such external calls.
+
+Never rely on the number of jobs to be executed.
+Even if you schedule jobs to be executed at a specific moment, they might be executed all at once, due to, e.g., a traffic jam in job processing.
+Use https://github.com/mperham/sidekiq/wiki/Ent-Rate-Limiting[Enterprise Rate Limiting].
+Use the strategy (Concurrent, Bucket, Window) that is most suitable to the specific API rate limiting.
+
+[source,ruby]
+----
+# bad
+class UpdateExternalDataJob < ApplicationJob
+  def perform(user)
+    new_attribute = ThirdParty::Api.get_attribute(user.external_id)
+    user.update!(attribute: new_attribute)
+  end
+end
+
+User.where.not(external_id: nil)
+  .find_in_batches.with_index do |group_number, users|
+  users.each do |user|
+    UpdateExternalDataJob
+      .set(wait: group_number.minutes)
+      .perform_later(users)
+    end
+end
+
+# good
+class UpdateExternalDataJob < ApplicationJob
+  LIMITER = Sidekiq::Limiter.window('third-party-attribute-update', 20, :minute, wait_timeout: 0)
+
+  def perform(user)
+    LIMITER.within_limit do
+      new_attribute = ThirdParty::Api.get_attribute(user.external_id)
+      user.update!(attribute: new_attribute)
+    end
+  end
+end
+
+# Application code
+User.where.not(external_id: nil).find_each do |user|
+  UpdateExternalDataJob.perform_later(user)
+end
+
+# config/initializers/sidekiq.rb
+Sidekiq::Limiter.configure do |config|
+  config.errors << ThirdParty::Api::Errors::TooManyRequestsError
+end
+----
+
 [#default-limiter-backoff]
 === Default Limiter Backoff
 
