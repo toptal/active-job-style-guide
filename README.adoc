@@ -449,6 +449,16 @@ Sidekiq::Limiter.configure do |config|
 end
 ----
 
+[#infrastructure]
+== Infrastructure
+
+[#one-process-per-core]
+=== One Process per Core
+
+On multi-core machines, run as many Sidekiq processes as needed to fully utilize cores.
+Sidekiq process only uses one CPU core.
+A rule of thumb is to run as many processes as there are cores available.
+
 [#redis-memory-constraints]
 === Redis Memory Constraints
 
