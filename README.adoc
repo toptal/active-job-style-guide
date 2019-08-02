@@ -716,6 +716,23 @@ class SomeJob < ApplicationJob
 end
 ----
 
+[#limiter-options]
+=== Limiter Options
+
+The usage of incorrect limiter options may break its behavior.
+
+==== `wait_timeout`
+
+Set `wait_timeout` to zero or some reasonably low value.
+Doing otherwise will result in idle workers, while there might be jobs waiting in the queue.
+
+Keep in mind the backoff configuration, and carefully pick the timing when the job is retried.
+
+==== `lock_timeout` for Concurrent Limiter
+
+Set `lock_timeout` to a longer than the job executes.
+Otherwise, the lock will be released too early and more concurrent jobs will be executed than expected.
+
 [#global-limiting-middleware]
 === Global Limiting Middleware
 
