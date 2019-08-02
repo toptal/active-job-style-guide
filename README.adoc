@@ -496,6 +496,49 @@ Measure the exact footprint for each job with its arguments.
 
 At some scale, https://github.com/mperham/sidekiq/wiki/Build-vs-Buy[it pays out to use commercial features].
 
+Some commercial features are available as third-party add-ons.
+However, their reliability is in most cases questionable.
+
+[#use-batches]
+=== Use Batches
+
+Group jobs related to one task using https://github.com/mperham/sidekiq/wiki/Batches[Sidekiq Batches].
+Batch's `jobs` method is atomic, i.e., all the jobs are scheduled together, in an all-or-nothing fashion.
+
+[source,ruby]
+----
+# bad
+class BackfillMissingDataJob < ApplicationJob
+  def self.run_batch
+    Model.where(attribute: nil).find_each do |model|
+      perform_later(model)
+    end
+  end
+
+  def perform(model)
+    # do the job
+  end
+end
+
+# good
+class BackfillMissingDataJob < ApplicationJob
+  def self.run_batch
+    batch = Sidekiq::Batch.new
+    batch.description = 'Backfill missing data'
+    batch.on(:success, BackfillComplete, to: SysAdmin.email)
+    batch.jobs do
+      Model.where(attribute: nil).find_each do |model|
+        perform_later(model)
+      end
+    end
+  end
+
+  def perform(model)
+    # do the job
+  end
+end
+----
+
 [#self-scheduling-jobs]
 === Self-scheduling Jobs
 
