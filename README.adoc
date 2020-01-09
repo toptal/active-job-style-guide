@@ -225,7 +225,7 @@ end
 === Retries
 
 Avoid using https://edgeguides.rubyonrails.org/active_job_basics.html#exceptions[ActiveJob's built-in `retry_on`] or `ActiveJob::Retry` (`activejob-retry` gem).
-Use Sidekiq retries, which are also available from within Active Job with Sidekiq 6+.
+Use our retry mechanism, as described in https://github.com/toptal/platform/blob/master/app/jobs/concerns/active_job_retry.rb[here].
 
 Do not hide or extract job retry mechanisms.
 Keep retries directives visible in the jobs.
@@ -254,7 +254,7 @@ end
 
 # good - Sidekiq deals with retries
 class SomeJob < ApplicationJob
-  sidekiq_options retry: 3
+  retries 3
 
   def perform(user)
     # ...
