@@ -907,8 +907,9 @@ end
 
 == History
 
-This guide came to life as an internal https://www.toptal.com[company] list of the best practices of working with ActiveJob and Sidekiq (written by https://github.com/pirj[Phil Pirozhkov]).
-It is compiled from remarks collected from numerous code reviews conducted by its authors and outlines the best practices of working with background jobs in Ruby.
+This guide came to life as an internal company list of the best practices of working with ActiveJob and Sidekiq.
+It is compiled from remarks collected from numerous code reviews, and during the migration from another background job processing tool to Sidekiq.
+Initially created by https://github.com/pirj[Phil Pirozhkov]) with the help of colleagues, and sponsored by https://www.toptal.com[Toptal].
 
 == Contributing
 
