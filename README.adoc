@@ -18,6 +18,9 @@ Sidekiq may be used without Active Job, but the latter adds transparency and a u
 
 This style guide didn't appear out of thin air - it is based on the professional experience of the editors, official documentation, and suggestions from members of the Ruby community.
 
+Those guidelines help to avoid numerous pitfalls.
+Depending on the usage of background jobs, some guidelines might apply, and some not.
+
 ifdef::env-github[]
 You can generate a PDF copy of this guide using https://asciidoctor.org/docs/asciidoctor-pdf/[AsciiDoctor PDF], and an HTML copy https://asciidoctor.org/docs/convert-documents/#converting-a-document-to-html[with] https://asciidoctor.org/#installation[AsciiDoctor] using the following commands:
 
@@ -906,7 +909,6 @@ end
 
 This guide came to life as an internal https://www.toptal.com[company] list of the best practices of working with ActiveJob and Sidekiq (written by https://github.com/pirj[Phil Pirozhkov]).
 It is compiled from remarks collected from numerous code reviews conducted by its authors and outlines the best practices of working with background jobs in Ruby.
-Not only will those guidelines save an incredible amount of developer time, but it will also save from pitfalls.
 
 == Contributing
 
