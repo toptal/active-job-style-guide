@@ -3,8 +3,8 @@
 :idseparator: -
 :sectanchors:
 :sectlinks:
-:toc: left
-:toclevels: 2
+:toc: preamble
+:toclevels: 1
 ifndef::backend-pdf[]
 :toc-title: pass:[<h2>Table of Contents</h2>]
 endif::[]
