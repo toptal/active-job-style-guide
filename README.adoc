@@ -874,7 +874,7 @@ end
 # good
 RSpec.describe SomeJob do
   it 'updates user status' do
-    expect { SomeJob.perform_now(user) }.to change { user.status }.to(:updated) }
+    expect { described_class.perform_now(user) }.to change { user.status }.to(:updated) }
   end
 end
 ----
