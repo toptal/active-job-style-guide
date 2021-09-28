@@ -47,6 +47,35 @@ endif::[]
 [#general]
 == General Recommendations
 
+
+[#prefer-keyword-arguments]
+=== Prefe Keyword Arguments
+
+If you use positional arguments as the parameters passed to `#perform` it becomes complicated to evolve the interface of the job, i.e. if you add or remove an argument then you need to take extra attention so that the old and new code are compatible, and you can't easily drop an argument in any case, as a job would need to inspect the argument itself to know if it was invoked with the old or new API.
+
+If you use keyword arguments, this becomes pretty straightforward, and since ActiveJob supports them, they should be preferred.
+
+
+[source,ruby]
+----
+# bad - passing by position
+class SomeJob < ApplicationJob
+  def perform(foo, bar)
+    do_something_with(foo)
+    do_something_with(bar)
+  end
+end
+
+# good - passing by keyword
+class SomeJob < ApplicationJob
+  def perform(foo:, bar:)
+    do_something_with(foo)
+    do_something_with(bar)
+  end
+end
+----
+
+
 [#active-record-models-as-arguments]
 === Active Record Models as Arguments
 
