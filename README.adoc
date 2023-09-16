@@ -156,6 +156,16 @@ class SomeJob < ApplicationJob
   end
 end
 
+# bad - not compatible with ActiveJob
+class SomeJob
+  include Sidekiq::Job
+  sidekiq_options queue: :high_priority
+
+  def perform
+    # ...
+  end
+end
+
 # good
 class SomeJob < ApplicationJob
   queue_as :high_priority
