@@ -492,6 +492,21 @@ Sidekiq::Limiter.configure do |config|
 end
 ----
 
+=== perform_async vs perform_at or perform_in
+
+Sidekiq 6.3 adds support for the `wait` and `wait_until` options as an alternative to `perform_at` or `perform_in`.
+
+[source,ruby]
+----
+# bad
+SomeJob.perform_in(5.minutes, 1, 2, 3)
+SomeJob.perform_at(5.days.from_now, 1, 2, 3)
+
+# good
+SomeJob.set(wait: 5.minutes).perform_async(1, 2, 3)
+SomeJob.set(wait_until: 5.days.from_now).perform_async(1, 2, 3)
+----
+
 [#infrastructure]
 == Infrastructure
 
